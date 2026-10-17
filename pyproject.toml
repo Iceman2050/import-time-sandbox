@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "import-time-sandbox"
+version = "1.0.0"
+description = "Import npm/PyPI packages in a locked-down sandbox; flag import-time exfil behavior (stdlib only)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+
+[project.scripts]
+import-time-sandbox = "import_time_sandbox:main"
+
+[tool.setuptools]
+py-modules = ["import_time_sandbox"]
