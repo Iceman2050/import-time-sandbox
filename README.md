@@ -1,24 +1,40 @@
 # import-time-sandbox
 
-**The worm fires when you `import` it — install-time scanners never see it.**
+**The MemTensor worm (Sep 2026): malicious packages that execute the moment you `import` them.**
 
-On 2026-09-23, Socket reported a backdoored MemTensor npm plugin and PyPI MemoryOS 2.0.34 dropping the **sckit Go credential worm** — firing at import time and self-propagating via stolen publish tokens (Socket.dev). The first worm targeting AI agent memory infrastructure. `--ignore-scripts` doesn't help: nothing is installed, the import itself is the payload.
+`pip install` is only half the attack — the payload fires at import time, phoning home or dropping files before your code runs a single line. This tool imports a package inside a restricted sandbox and reports exactly what the import tried to do: network, filesystem, subprocess.
 
-`import-time-sandbox` imports any npm/PyPI package inside a locked-down child process and flags import-time behavior:
-- **Network attempts** (`socket.getaddrinfo` audit hook) — cloud metadata endpoint (169.254.169.254) → CRITICAL
-- **Credential reads** — opens of `.ssh`, `.aws`, `.env`, `id_rsa`, … → CRITICAL
-- **Process spawns** (`os.system`, `subprocess`) → HIGH
-- **Persistence writes** (startup/launchd/systemd/cron paths) → CRITICAL
-
-Sandboxing: scrubbed environment, temp HOME, CPU/memory limits (POSIX), hard wall-clock timeout — the child is killed, never trusted. Stdlib only.
-
-## What it does NOT detect
-Behavior that only triggers on specific inputs, delayed timers, or native extensions that bypass audit hooks. A clean report means "no flagged behavior observed in this run" — **not** a safety certification.
-
-## Usage
+## 30-second quickstart
 ```
-python -m import_time_sandbox suspicious_package --path /path/to/pkg --timeout 20
+python import_time_sandbox.py somepackage --path ./vendor
 ```
+
+## Example output
+```
+{
+  "package": "evilpkg2",
+  "timeout": false,
+  "import_ok": false,
+  "findings": [
+    {
+      "finding": "network-attempt",
+      "severity": "CRITICAL",
+      "detail": "import attempted network access to 169.254.169.254"
+    },
+    {
+      "finding": "import-failed",
+      "severity": "INFO",
+      "detail": "import raised: PermissionError: [Errno 1] Operation not permitted"
+    }
+  ],
+  "verdict": "2 import-time finding(s)"
+}
+```
+
+`--timeout` per import (default 20s), `--path` adds a vendor directory. Never run untrusted packages outside the sandbox.
+
+## What it does NOT do
+A restricted sandbox, not a VM — sophisticated malware can detect sandboxes. A clean import is not a safety certification (the tool says so on every run).
 
 ## Built by Ingenious AI
 
