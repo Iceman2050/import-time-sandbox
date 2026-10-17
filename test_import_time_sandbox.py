@@ -69,6 +69,62 @@ def t_missing_package_import_failed_info():
     assert any(f["finding"] == "import-failed" for f in r["findings"])
 
 
+
+def t_metadata_ip_is_critical():
+    d = _pkg_dir("metapkg5", "import socket\nsocket.getaddrinfo('169.254.169.254', 80)\n")
+    r = sandbox_import("metapkg5", timeout=20, extra_path=d)
+    crit = [f for f in r["findings"] if f["finding"] == "network-attempt"]
+    assert crit and crit[0]["severity"] == "CRITICAL", r
+
+
+def t_persistence_write_flagged():
+    code = "open('/tmp/x-launchd-test.plist', 'w').write('x')\n"
+    d = _pkg_dir("persistpkg6", code)
+    r = sandbox_import("persistpkg6", timeout=20, extra_path=d)
+    assert any(f["finding"] == "persistence-write" for f in r["findings"]), r
+
+
+def t_empty_name_refused():
+    try:
+        sandbox_import("", timeout=5)
+    except ValueError:
+        return
+    raise AssertionError("expected ValueError")
+
+
+def t_semicolon_name_refused():
+    try:
+        sandbox_import("a;b", timeout=5)
+    except ValueError:
+        return
+    raise AssertionError("expected ValueError")
+
+
+def t_verdict_clean_mentions_not_certification():
+    d = _pkg_dir("benignpkg7", "X = 2\n")
+    r = sandbox_import("benignpkg7", timeout=20, extra_path=d)
+    assert "not a safety certification" in r["verdict"]
+
+
+def t_result_has_package_field():
+    d = _pkg_dir("benignpkg8", "X = 3\n")
+    r = sandbox_import("benignpkg8", timeout=20, extra_path=d)
+    assert r["package"] == "benignpkg8"
+    assert r["timeout"] is False
+
+
+def t_timeout_shape():
+    r = sandbox_import("time", timeout=20)  # stdlib, fast
+    assert r["timeout"] is False
+
+
+def t_finding_detail_nonempty():
+    d = _pkg_dir("netpkg9", "import socket\nsocket.getaddrinfo('example.invalid', 80)\n")
+    r = sandbox_import("netpkg9", timeout=20, extra_path=d)
+    for f in r["findings"]:
+        assert f["detail"] and f["severity"] in ("HIGH", "CRITICAL", "INFO")
+
+
 def test_all_checks():
     for name, fn in sorted(
             [(k, v) for k, v in globals().items() if k.startswith("t_")]):
