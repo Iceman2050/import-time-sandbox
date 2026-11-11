@@ -54,4 +54,4 @@ This tool is built and maintained by **Ingenious AI**. Get early access to our A
 
 
 
-> Built by Ingenious AI with Muse — get free tokens with invite code `2HCQH1`
+> Built by Ingenious AI
